@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
-import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
-import Dropzone from 'react-dropzone'
 
+import React, { useState } from 'react';
+
+import Dropzone from 'react-dropzone';
+import TagsInput from 'react-tagsinput';
 
 const CreateProduct = (props) => {
 
@@ -75,11 +76,85 @@ const CreateProduct = (props) => {
     }
 
     // Save product
-    let saveProduct = (event) => {
+    let saveProduct = async (event) => {
         event.preventDefault();
-        // TODO : write your code here to save the product
-    }
+        console.log('Inside save')
+        try {
+            console.log('i am save product')
+            console.log('Product Name:', productName);
+            console.log('Product SKU:', productSKU);
+            // Step 1: Create Product
+            const productResponse = await fetch('http://127.0.0.1:8000/product/api/products/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: productName,
+                    sku: productSKU,
+                    description: productDescription,
+                }),
+            });
 
+            if (!productResponse.ok) {
+                throw new Error('Failed to create product');
+            }
+
+            const productData = await productResponse.json();
+            const productId = productData.id;
+
+            // Step 2: Create Product Variants
+            const variantResponses = await Promise.all(productVariants.map(async (variant) => {
+                const variantResponse = await fetch('http://127.0.0.1:8000/product/api/products_variant/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product: productId,
+                        option: variant.option,
+                        tags: variant.tags,
+                    }),
+                });
+
+                if (!variantResponse.ok) {
+                    throw new Error('Failed to create product variant');
+                }
+
+                return variantResponse.json();
+            }));
+
+            // Step 3: Create Product Variant Prices and Images (if applicable)
+            const variantPriceResponses = await Promise.all(productVariantPrices.map(async (price) => {
+                const variantPriceResponse = await fetch('http://127.0.0.1:8000/product/api/products_variant_price/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_variant: price.product_variant,
+                        title: price.title,
+                        price: price.price,
+                        stock: price.stock,
+                    }),
+                });
+
+                if (!variantPriceResponse.ok) {
+                    throw new Error('Failed to create product variant price');
+                }
+
+                return variantPriceResponse.json();
+            }));
+
+            // Step 4: Handle Product Variant Images (if applicable)
+            // You can implement this similarly to how variant prices are handled
+
+            alert('Product created successfully!');
+        } catch (error) {
+            console.error('Error creating product:', error);
+            alert('Failed to create product. Please try again later.');
+        }
+    };
 
     return (
         <div>
@@ -90,11 +165,11 @@ const CreateProduct = (props) => {
                             <div className="card-body">
                                 <div className="form-group">
                                     <label htmlFor="">Product Name</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input type="text" placeholder="Product Name" className="form-control" />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Product SKU</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input type="text" placeholder="Product Name" className="form-control" />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Description</label>
@@ -110,7 +185,7 @@ const CreateProduct = (props) => {
                             </div>
                             <div className="card-body border">
                                 <Dropzone onDrop={acceptedFiles => console.log(acceptedFiles)}>
-                                    {({getRootProps, getInputProps}) => (
+                                    {({ getRootProps, getInputProps }) => (
                                         <section>
                                             <div {...getRootProps()}>
                                                 <input {...getInputProps()} />
@@ -142,7 +217,7 @@ const CreateProduct = (props) => {
                                                             {
                                                                 JSON.parse(props.variants.replaceAll("'", '"')).map((variant, index) => {
                                                                     return (<option key={index}
-                                                                                    value={variant.id}>{variant.title}</option>)
+                                                                        value={variant.id}>{variant.title}</option>)
                                                                 })
                                                             }
 
@@ -155,15 +230,15 @@ const CreateProduct = (props) => {
                                                         {
                                                             productVariants.length > 1
                                                                 ? <label htmlFor="" className="float-right text-primary"
-                                                                         style={{marginTop: "-30px"}}
-                                                                         onClick={() => removeProductVariant(index)}>remove</label>
+                                                                    style={{ marginTop: "-30px" }}
+                                                                    onClick={() => removeProductVariant(index)}>remove</label>
                                                                 : ''
                                                         }
 
-                                                        <section style={{marginTop: "30px"}}>
+                                                        <section style={{ marginTop: "30px" }}>
                                                             <TagsInput value={element.tags}
-                                                                       style="margin-top:30px"
-                                                                       onChange={(value) => handleInputTagOnChange(value, index)}/>
+                                                                style="margin-top:30px"
+                                                                onChange={(value) => handleInputTagOnChange(value, index)} />
                                                         </section>
 
                                                     </div>
@@ -189,24 +264,24 @@ const CreateProduct = (props) => {
                                 <div className="table-responsive">
                                     <table className="table">
                                         <thead>
-                                        <tr>
-                                            <td>Variant</td>
-                                            <td>Price</td>
-                                            <td>Stock</td>
-                                        </tr>
+                                            <tr>
+                                                <td>Variant</td>
+                                                <td>Price</td>
+                                                <td>Stock</td>
+                                            </tr>
                                         </thead>
                                         <tbody>
-                                        {
-                                            productVariantPrices.map((productVariantPrice, index) => {
-                                                return (
-                                                    <tr key={index}>
-                                                        <td>{productVariantPrice.title}</td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                    </tr>
-                                                )
-                                            })
-                                        }
+                                            {
+                                                productVariantPrices.map((productVariantPrice, index) => {
+                                                    return (
+                                                        <tr key={index}>
+                                                            <td>{productVariantPrice.title}</td>
+                                                            <td><input className="form-control" type="text" /></td>
+                                                            <td><input className="form-control" type="text" /></td>
+                                                        </tr>
+                                                    )
+                                                })
+                                            }
                                         </tbody>
                                     </table>
                                 </div>
