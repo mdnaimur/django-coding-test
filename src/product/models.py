@@ -14,6 +14,9 @@ class Product(TimeStampMixin):
     sku = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
 
+    def __str__(self):
+        return self.title
+
 
 class ProductImage(TimeStampMixin):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -24,6 +27,9 @@ class ProductVariant(TimeStampMixin):
     variant_title = models.CharField(max_length=255)
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.variant_title
 
 
 class ProductVariantPrice(TimeStampMixin):
@@ -36,3 +42,6 @@ class ProductVariantPrice(TimeStampMixin):
     price = models.FloatField()
     stock = models.FloatField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.product.title} - {self.product_variant_one.variant_title} - {self.product_variant_two.variant_title} - {self.product_variant_three.variant_title} "
